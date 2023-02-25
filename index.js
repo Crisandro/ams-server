@@ -55,7 +55,7 @@ const db = mysql.createConnection({
 })
 
 
-app.get('/view',cors(corsOption),(req,res)=>{
+app.get('/',cors(corsOption),(req,res)=>{
     const viewAllData = "SELECT * FROM device_name"
     db.query(viewAllData,(err, result)=>{
         res.json(result)
