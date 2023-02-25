@@ -120,6 +120,6 @@ app.post("/logout",cors(corsOption),(req,res)=>{
     res.send({ loggedIn: false })
 })
 
-app.listen(3001, ()=> {
+app.listen(crisandro.github.io/ams-server, ()=> {
     console.log("running on port 3001")
 })
