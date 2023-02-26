@@ -114,8 +114,15 @@ app.get("/login",cors(corsOption),(req,res)=>{
     }
 })
 
-app.get("/stdevice",cors(corsOption),(req,res)=>{
-    const viewAlldevice = "SELECT COUNT(*) FROM stdevice LEFT JOIN device_name ON stdevice.dev_id=device_name.dev_id"
+app.get("/location",cors(corsOption),(req,res)=>{
+    const viewAlldevice = "select * from stlocation"
+    db.query(viewAlldevice,(err, result)=>{
+        res.send(result)
+    })
+})
+
+app.get("/availableItems",cors(corsOption),(req,res)=>{
+    const viewAlldevice = "select * from stdevice LEFT JOIN device_name ON stdevice.dev_id=device_name.dev_id where dev_status='Available'"
     db.query(viewAlldevice,(err, result)=>{
         res.send(result)
     })
