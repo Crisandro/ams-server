@@ -75,7 +75,6 @@ app.post("/register",cors(corsOption), (req, res) => {
         `INSERT INTO admin (username, password, firstname, lastname, adminthumbnails) VALUES ('${username}','${hash}','${fname}','${lname}','uploads/boys1.png')`,
         (err, result) => {
             res.send({result: `${username} has been added`})
-            //res.json(result)
         }
         );
     });
@@ -113,6 +112,13 @@ app.get("/login",cors(corsOption),(req,res)=>{
     } else {
         res.send({ loggedIn: false })
     }
+})
+
+app.get("/stdevice",cors(corsOption),(req,res)=>{
+    const viewAlldevice = "SELECT * FROM stdevice LEFT JOIN device_name ON stdevice.dev_id=device_name.dev_id"
+    db.query(viewAlldevice,(err, result)=>{
+        res.send(result.length)
+    })
 })
 
 app.post("/logout",cors(corsOption),(req,res)=>{
