@@ -121,6 +121,13 @@ app.get("/stdevice",cors(corsOption),(req,res)=>{
     })
 })
 
+app.get("/stdevices",cors(corsOption),(req,res)=>{
+    const viewAlldevice = "SELECT * FROM stdevice LEFT JOIN device_name ON stdevice.dev_id=device_name.dev_id"
+    db.query(viewAlldevice,(err, result)=>{
+        res.send(result)
+    })
+})
+
 app.post("/logout",cors(corsOption),(req,res)=>{
     req.session.destroy()
     res.send({ loggedIn: false })
