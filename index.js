@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser')
 const session = require('express-session')
 
 app.use(express.json())
+app.set('trust proxy', 1)
 //app.use(express.urlencoded({extended: false}))
 
 const corsOption = {
@@ -31,8 +32,9 @@ app.use(session({
     key: "userId",
     secret: "theOGthesis",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
+        secure: true,
         expires: 60 * 60 * 24,
     },
 }))
