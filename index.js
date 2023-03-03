@@ -18,6 +18,8 @@ const corsOption = {
     optionsSuccessStatus: 200
 }
 
+app.user(cors(corsOption))
+
 
 app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended : true }))
