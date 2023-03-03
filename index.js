@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser')
 const session = require('express-session')
 const cookieSession = require('cookie-session')
 
+app.set('trust proxy', 1)
 app.use(cookieSession({
     name: 'session',
     keys: ["theOGthesis"],
@@ -31,7 +32,7 @@ const corsOption = {
 
 app.use(cors(corsOption))
 
-app.set('trust proxy', 1)
+
 app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended : true }))
 app.use(session({
