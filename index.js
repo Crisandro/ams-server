@@ -13,7 +13,7 @@ app.use(express.json())
 
 
 const corsOption = {
-    origin: "http://localhost:3000/ams-application",
+    origin: "http://localhost:3000/",
     methods: ["GET", "POST"],
     credentials: true,
     optionsSuccessStatus: 200
@@ -64,7 +64,7 @@ app.post("/register",cors(corsOption), (req, res) => {
 
     bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
-        console.log(err);
+            console.log(err);
         }
 
         db.query(
