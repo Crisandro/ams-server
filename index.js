@@ -21,7 +21,7 @@ const corsOption = {
 
 app.use(cors(corsOption))
 
-app.set('trust proxy', 1)
+//app.set('trust proxy', 1)
 app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended : true }))
 app.use(session({
@@ -31,7 +31,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         secure: true,
-        maxAge: 60 * 60 * 24,
+        maxAge: 60 * 60 * 24 * 1000 ,
     },
 }))
 
