@@ -12,7 +12,7 @@ app.set('trust proxy', 1)
 //app.use(express.urlencoded({extended: false}))
 
 const corsOption = {
-    origin: "http://localhost:3000/ams-application" || "https://crisandro.github.io/ams-application",
+    origin: "http://localhost:3000" || "https://crisandro.github.io/ams-application",
     methods: ["GET", "POST"],
     credentials: true,
     optionsSuccessStatus: 200
