@@ -24,7 +24,7 @@ app.use(express.json())
 
 
 const corsOption = {
-    origin: "http://localhost:3000",
+    origin: "http://localhost:3000" || "https://crisandro.github.io",
     methods: ["GET", "POST"],
     credentials: true,
     optionsSuccessStatus: 200
