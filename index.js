@@ -45,6 +45,8 @@ app.use(session({
 }))
 
 
+
+
   // Add Access Control Allow Origin headers
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -86,7 +88,7 @@ app.post("/register",cors(corsOption), (req, res) => {
 });
 
 app.get("/login",cors(corsOption),(req,res)=>{
-    console.log(req.session.user)
+    console.log("loggedinuser : "+req.session.user)
     if( req.session.user ){
         res.send({ loggedIn: true, user: req.session.user })
     } else {
@@ -110,13 +112,14 @@ app.post("/login",cors(corsOption), (req, res) => {
                 bcrypt.compare(password, result[0].password, (error, response) => {
                 if (response) {
                     req.session.user = result;
-                    res.send({ loggedIn: true , result });
+                    res.send({ loggedIn: true , result })
+                    console.log(req.session.user)
                 } else {
                     res.send({ message: "Wrong username/password combination!" , loggedIn: false });
                 }
                 });
             } else {
-                res.send({ message: "User doesn't exist" , loggedIn: false });
+                res.send({ message: "User doesn't exist" , loggedIn: false })
             }
         }
     );
