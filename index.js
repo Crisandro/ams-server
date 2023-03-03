@@ -40,9 +40,6 @@ app.use(session({
     secret: "theOGthesis",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-        maxAge: 60 * 60 * 24 * 1000 ,
-    },
 }))
 
 
