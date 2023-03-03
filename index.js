@@ -8,35 +8,36 @@ const cookieParser = require('cookie-parser')
 const session = require('express-session')
 
 app.use(express.json())
-app.set('trust proxy', 1)
+
 //app.use(express.urlencoded({extended: false}))
 
+
 const corsOption = {
-    origin: "http://localhost:3000" || "https://crisandro.github.io/ams-application",
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
     optionsSuccessStatus: 200
 }
 
-app.user(cors(corsOption))
+app.use(cors(corsOption))
 
-
+app.set('trust proxy', 1)
 app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended : true }))
 app.use(session({
-    key: "userId",
+    key: "user",
     secret: "theOGthesis",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: {
-        secure: true,
         maxAge: 60 * 60 * 24,
     },
 }))
 
+
   // Add Access Control Allow Origin headers
 app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.header(
         "Access-Control-Allow-Headers",
         "Origin, X-Requested-With, Content-Type, Accept"
@@ -53,10 +54,7 @@ const db = mysql.createConnection({
 
 
 app.get('/',cors(corsOption),(req,res)=>{
-    const viewAllData = "SELECT * FROM device_name"
-    db.query(viewAllData,(err, result)=>{
-        res.json(result)
-    })
+    console.log(req.session.user)
 })
 
 
@@ -76,6 +74,17 @@ app.post("/register",cors(corsOption), (req, res) => {
         );
     });
 });
+
+app.get("/login",cors(corsOption),(req,res)=>{
+    console.log(req.session.user)
+    if( req.session.user ){
+        res.send({ loggedIn: true, user: req.session.user })
+    } else {
+        res.send({ loggedIn: false })
+    }
+})
+
+
 
 app.post("/login",cors(corsOption), (req, res) => {
     const {username, password}= req.body;
@@ -103,13 +112,11 @@ app.post("/login",cors(corsOption), (req, res) => {
     );
 });
 
-app.get("/login",cors(corsOption),(req,res)=>{
-    if( req.session.user ){
-        res.send({ loggedIn: true, user: req.session.user })
-    } else {
-        res.send({ loggedIn: false })
-    }
+app.post("/logout",cors(corsOption),(req,res)=>{
+    req.session.destroy()
+    res.send({ loggedIn: false })
 })
+
 
 app.get("/location",cors(corsOption),(req,res)=>{
     const viewAlldevice = "SELECT * FROM stlocation"
@@ -139,10 +146,7 @@ app.get("/devicename",cors(corsOption),(req,res)=>{
     })
 })
 
-app.post("/logout",cors(corsOption),(req,res)=>{
-    req.session.destroy()
-    res.send({ loggedIn: false })
-})
+
 
 const port = process.env.PORT || 3001
 
