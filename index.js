@@ -7,6 +7,15 @@ const bcrypt = require('bcrypt')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
+const cookieSession = require('cookie-session')
+
+app.use(cookieSession({
+    name: 'session',
+    keys: ["theOGthesis"],
+
+    // Cookie Options
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}))
 
 app.use(express.json())
 
@@ -115,7 +124,7 @@ app.post("/login",cors(corsOption), (req, res) => {
 });
 
 app.post("/logout",cors(corsOption),(req,res)=>{
-    req.session.destroy()
+    req.session = null
     res.send({ loggedIn: false })
 })
 
