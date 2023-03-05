@@ -103,7 +103,7 @@ app.get("/login",cors(corsOption),(req,res)=>{
     if( req.session.user ){
         // res.send({ loggedIn: true, user: req.session.user })
         res.send({ loggedIn: true, user: store.get('user') })
-        console.log( store.get('user') )
+        //console.log( store.get('user') )
     } else {
         res.send({ loggedIn: false })
     }
