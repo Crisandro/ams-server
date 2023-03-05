@@ -100,9 +100,9 @@ app.post("/register",cors(corsOption), (req, res) => {
 });
 
 app.get("/login",cors(corsOption),(req,res)=>{
-    if( store.get('user') ){
-        // res.send({ loggedIn: true, user: req.session.user })
-        res.send({ loggedIn: true, user: store.get('user') })
+    if( req.session.user ){
+        res.send({ loggedIn: true, user: req.session.user })
+        // res.send({ loggedIn: true, user: store.get('user') })
         //console.log( store.get('user') )
     } else {
         res.send({ loggedIn: false })
@@ -124,7 +124,7 @@ app.post("/login",cors(corsOption), (req, res) => {
             if (result.length > 0) {
                 bcrypt.compare(password, result[0].password, (error, response) => {
                 if (response) {
-                    store.set('user',result)
+                    // store.set('user',result)
                     req.session.user = result;
                     res.send({ loggedIn: true , result })
                     //console.log(req.session.user)
