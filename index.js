@@ -100,7 +100,7 @@ app.post("/register",cors(corsOption), (req, res) => {
 });
 
 app.get("/login",cors(corsOption),(req,res)=>{
-    if( req.session.user ){
+    if( store.get('user') ){
         // res.send({ loggedIn: true, user: req.session.user })
         res.send({ loggedIn: true, user: store.get('user') })
         //console.log( store.get('user') )
