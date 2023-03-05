@@ -8,6 +8,7 @@ const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
 const cookieSession = require('cookie-session')
+const store = require('store')
 var cannotDelete = []
 var Deletedarray = []
 
@@ -100,8 +101,9 @@ app.post("/register",cors(corsOption), (req, res) => {
 
 app.get("/login",cors(corsOption),(req,res)=>{
     if( req.session.user ){
-        res.send({ loggedIn: true, user: req.session.user })
-        console.log( req.session.user )
+        // res.send({ loggedIn: true, user: req.session.user })
+        res.send({ loggedIn: true, user: store.get('user') })
+        console.log( store.get('user') )
     } else {
         res.send({ loggedIn: false })
     }
@@ -122,6 +124,7 @@ app.post("/login",cors(corsOption), (req, res) => {
             if (result.length > 0) {
                 bcrypt.compare(password, result[0].password, (error, response) => {
                 if (response) {
+                    store.set('user',{admin_id: result[0].admin_id, username: result[0].username,firstname: result[0].firstname, lastname: result[0].lastname})
                     req.session.user = result;
                     res.send({ loggedIn: true , result })
                     //console.log(req.session.user)
