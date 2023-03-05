@@ -124,7 +124,7 @@ app.post("/login",cors(corsOption), (req, res) => {
             if (result.length > 0) {
                 bcrypt.compare(password, result[0].password, (error, response) => {
                 if (response) {
-                    store.set('user',{result})
+                    store.set('user',result)
                     req.session.user = result;
                     res.send({ loggedIn: true , result })
                     //console.log(req.session.user)
