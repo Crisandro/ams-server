@@ -45,9 +45,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     proxy: true,
+    store: sessionStore,
+    httpOnly: false,
     cookie: {
         secure: true, // required for cookies to work on HTTPS
-        httpOnly: true,
         sameSite: 'none'
       }
 }))
