@@ -2,6 +2,8 @@ const express = require('express')
 const app = express()
 const mysql = require('mysql')
 const cors = require('cors')
+const sessionId = require('express-session-id')
+const { v4: uuidv4 } = require('uuid')
 //app.use(cors())
 const bcrypt = require('bcrypt')
 const bodyParser = require('body-parser')
@@ -11,6 +13,7 @@ const cookieSession = require('cookie-session')
 const store = require('store')
 var cannotDelete = []
 var Deletedarray = []
+   
 
 
 app.set('trust proxy', 1)
@@ -40,19 +43,6 @@ app.use(cors(corsOption))
 
 app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended : true }))
-app.use(session({
-    key: "user",
-    secret: "theOGthesis",
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    httpOnly: false,
-    cookie: {
-        secure: true, // required for cookies to work on HTTPS
-        sameSite: 'none'
-      }
-}))
-
 
   // Add Access Control Allow Origin headers
 app.use((req, res, next) => {
@@ -71,10 +61,31 @@ const db = mysql.createConnection({
     database: "amsthesis",
 })
 
+// app.use(sessionId({
+//     idleTime: 24 * 60 * 1000 * 60, // 10 minutes
+// }))
+
+app.use(session({
+    genid: function(req) {
+        return uuidv4() // use UUIDs for session IDs
+    },
+    key: "user",
+    secret: "theOGthesis",
+    resave: false,
+    saveUninitialized: false,
+    proxy: true,
+    httpOnly: false,
+    cookie: {
+        secure: true, // required for cookies to work on HTTPS
+        sameSite: 'none'
+    }
+}))
 
 app.get('/',cors(corsOption),(req,res)=>{
-    console.log(req.session.user)
+    res.send({ sessionID : req.session.id})
+    
 })
+
 
 
 app.post("/register",cors(corsOption), (req, res) => {
@@ -91,6 +102,8 @@ app.post("/register",cors(corsOption), (req, res) => {
             
             db.query("SELECT * FROM `admin`",
             (err, result)=>{
+                const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Added new user: ${username}' )`
+                db.query( queryAddlog , (err, result) => {})
                 res.send({result: `${username} has been added`, database: result})
             })
         }
@@ -100,9 +113,7 @@ app.post("/register",cors(corsOption), (req, res) => {
 
 app.get("/login",cors(corsOption),(req,res)=>{
     if( req.session.user ){
-        res.send({ loggedIn: true, user: req.session.user })
-        // res.send({ loggedIn: true, user: store.get('user') })
-        //console.log( store.get('user') )
+         res.send({ loggedIn: true, user: req.session.user })
     } else {
         res.send({ loggedIn: false })
     }
@@ -123,10 +134,11 @@ app.post("/login",cors(corsOption), (req, res) => {
             if (result.length > 0) {
                 bcrypt.compare(password, result[0].password, (error, response) => {
                 if (response) {
-                    // store.set('user',result)
-                    req.session.user = result;
+                    req.session.user = result
+                    req.session.id = uuidv4()
+                    const queryAdduserlog = `INSERT INTO user_log (user_log_id, username, login_date, logout_date, admin_id, client_id) VALUES (null, '${username}', now(), null, '${result[0].admin_id}', '${req.session.id}' )`
+                    db.query( queryAdduserlog , (err, result) => {})
                     res.send({ loggedIn: true , result })
-                    //console.log(req.session.user)
                 } else {
                     res.send({ message: "Wrong username/password combination!" , loggedIn: false });
                 }
@@ -139,12 +151,18 @@ app.post("/login",cors(corsOption), (req, res) => {
 });
 
 app.post("/logout",cors(corsOption),(req,res)=>{
+    const queryAdduserlog = `UPDATE user_log SET logout_Date = now() WHERE client_id = '${req.session.id}' `
+    db.query( queryAdduserlog , (err, result) => {})
     req.session = null
     res.send({ loggedIn: false })
 })
 
 app.post("/api/addDevice",cors(corsOption),(req,res)=>{
-    const {dev_id,dev_brand,dev_serial,dev_model,dev_desc} = req.body;
+    const {dev_id,dev_brand,dev_serial,dev_model,dev_desc} = req.body
+
+    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Added a new device with a Serial number ${dev_serial}' )`
+    db.query( queryAddlog , (err, result) => {})
+
     const queryAdd = `INSERT INTO stdevice VALUES(null,'${dev_id}','${dev_desc}','${dev_serial}','${dev_brand}','${dev_model}','Available','')`
     db.query( queryAdd , (err, result) => {
         res.send({result: `new device has been added`})
@@ -152,13 +170,17 @@ app.post("/api/addDevice",cors(corsOption),(req,res)=>{
 })
 
 app.post("/api/addDeviceName",cors(corsOption),(req,res)=>{
-    const dev_name = req.body.dev_name;
+    const {dev_name, currentUser} = req.body
+
     const queryAdd = `INSERT INTO device_name (dev_name) VALUES ('${dev_name}')`
-    db.query( queryAdd , (err, result) => {
-        const viewAlldevice = "SELECT * FROM device_name"
-        db.query(viewAlldevice,(err, result)=>{
-            res.send({result: `${dev_name} has been added`, devList: result})
-        })
+    db.query( queryAdd , (err, result) => {})
+
+    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${currentUser}',now(),'Created new device type ${dev_name}' )`
+    db.query( queryAddlog , (err, result) => {})
+
+    const viewAlldevice = "SELECT * FROM device_name"
+    db.query(viewAlldevice,(err, result)=>{
+        res.send({result: `${dev_name} has been added`, devList: result})
     })
 })
 
@@ -190,12 +212,7 @@ app.get("/api/query",cors(corsOption),(req,res)=>{
     })
 })
 
-app.get("/location",cors(corsOption),(req,res)=>{
-    const viewAlldevice = "SELECT * FROM stlocation"
-    db.query(viewAlldevice,(err, result)=>{
-        res.send(result)
-    })
-})
+
 
 app.get("/availableItems",cors(corsOption),(req,res)=>{
     const viewAlldevice = "SELECT * FROM stdevice LEFT JOIN device_name ON stdevice.dev_id=device_name.dev_id where dev_status='Available'"
@@ -229,14 +246,15 @@ app.post("/devicenameValues",cors(corsOption),(req,res)=>{
 
 app.post("/confirmDeleteDeviceType",cors(corsOption),(req,res)=>{
     const dev_ids = req.body;
-    console.log(dev_ids)
 
     const querydelete = `DELETE FROM device_name WHERE dev_id IN (${dev_ids})`
-    db.query( querydelete , (err, result) => {
-        console.log(`${dev_ids} deleted `)
-        db.query("SELECT * FROM device_name",(err, result)=>{
-            res.send(result)
-        })
+    db.query( querydelete , (err, result) => {})
+
+    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Delete Device Types with the ID(s) of: ${dev_ids}' )`
+    db.query( queryAddlog , (err, result) => {})
+
+    db.query("SELECT * FROM device_name",(err, result)=>{
+        res.send(result)
     })
 })
 
@@ -256,13 +274,70 @@ app.post("/getSystemUsersName",cors(corsOption),(req,res)=>{
 })
 
 app.post("/deleteSystemUsersName",cors(corsOption),(req,res)=>{
-    const user_ids = req.body;
+    const user_ids = req.body
 
-    const viewAlluser = `DELETE FROM admin WHERE admin_id IN (${user_ids})`
-    db.query(viewAlluser,(err, Result)=>{
-        db.query("SELECT admin_id, firstname, username FROM admin",(err, Result)=>{
-            res.send(Result)
-        })
+    const viewfromuser = `SELECT * FROM admin WHERE admin_id IN (${user_ids})`
+    db.query(viewfromuser,(err, Result)=>{
+        var selected = Result.map( users => " " + users.username)
+        const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Delete users: ${selected}' )`
+        db.query( queryAddlog , (err, result) => {})
+    })
+
+    const deletefromuser = `DELETE FROM admin WHERE admin_id IN (${user_ids})`
+    db.query(deletefromuser,(err, Result)=>{})
+
+    db.query("SELECT admin_id, firstname, username FROM admin",(err, Result)=>{
+        res.send(Result)
+    })
+})
+
+app.get("/location",cors(corsOption),(req,res)=>{
+    const viewAlllocations = "SELECT * FROM stlocation"
+    db.query(viewAlllocations,(err, result)=>{
+        res.send(result)
+    })
+})
+
+app.post("/selectedLocationName",cors(corsOption),(req,res)=>{
+    const location_ids = req.body
+
+    const viewlocations = `SELECT * FROM location_details WHERE id IN (${location_ids})`
+    db.query(viewlocations,(err, result)=>{
+        if(result.length > 0){
+            res.send({notDelete: result.data.id, fordeleteIds:location_ids})
+        }
+    })
+
+})
+
+app.post("/locationNameValues",cors(corsOption),(req,res)=>{
+    const location_ids = req.body
+    const nameofLocations = `SELECT stdev_location_name FROM stlocation WHERE stdev_id IN (${location_ids})`
+    db.query(nameofLocations,(err, result)=>{
+        res.send(result)
+    })
+})
+
+app.get("/deleteLocationName",cors(corsOption),(req,res)=>{
+    const location_ids = req.body
+    const deletelocations = `DELETE FROM stlocation WHERE stdev_id IN (${location_ids})`
+    db.query(viewAlllocations,(err, result)=>{
+        res.send(result)
+    })
+})
+
+app.post("/addLocations",cors(corsOption),(req,res)=>{
+    const location_name = req.body.location_name
+
+    const inserintolocations = `INSERT INTO stlocation (stdev_id, stdev_location_name, thumbnails) VALUES (null, '${location_name}', 'images/thumbnails.jpg')`
+    db.query(inserintolocations,(err, Result)=>{})
+
+    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Added new Location name ${location_name}' )`
+    db.query( queryAddlog , (err, result) => {})
+
+    const viewAlllocations = "SELECT * FROM stlocation"
+    db.query(viewAlllocations,(err, Result)=>{
+        res.send({message: `successfully added ${location_name} location.`,Result: Result})
     })
 })
 
@@ -274,6 +349,7 @@ app.get("/getActivityLogs",cors(corsOption),(req,res)=>{
 })
 
 app.get("/getUserLogs",cors(corsOption),(req,res)=>{
+     
     const viewAlluserlog = "SELECT * FROM user_log"
     db.query(viewAlluserlog,(err, Result)=>{
         res.send(Result)
