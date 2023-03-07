@@ -300,30 +300,54 @@ app.get("/location",cors(corsOption),(req,res)=>{
 
 app.post("/selectedLocationName",cors(corsOption),(req,res)=>{
     const location_ids = req.body
-
-    const viewlocations = `SELECT * FROM location_details WHERE id IN (${location_ids})`
+    
+    const viewlocations = `SELECT * FROM location_details WHERE stdev_id IN (${location_ids})`
     db.query(viewlocations,(err, result)=>{
         if(result.length > 0){
-            res.send({notDelete: result.data.id, fordeleteIds:location_ids})
+            cannotDelete.push(result.map( datas => { datas.stdev_id}))
+            // res.send({notDelete: result.data.id, fordeleteIds:[]})
+            var ids = result.map( datas => { datas.stdev_id})
+            console.log( result.map( datas => datas.stdev_id ) )
+            res.send({notDelete: result.map( datas => datas.stdev_id ), fordeleteIds: []})
+        }else{
+            res.send({notDelete: [], fordeleteIds: location_ids})
         }
     })
 
+    
+    // res.send({notDelete: cannotDelete, fordeleteIds:Deletedarray})
+
+    // cannotDelete = []
+    // Deletedarray = []
 })
 
-app.post("/locationNameValues",cors(corsOption),(req,res)=>{
+// app.post("/locationNameValues",cors(corsOption),(req,res)=>{
+//     const location_ids = req.body
+//     const nameofLocations = `SELECT stdev_location_name FROM stlocation WHERE stdev_id IN (${location_ids})`
+//     db.query(nameofLocations,(err, result)=>{
+//         res.send(result)
+//     })
+// })
+
+app.post("/deleteLocationName",cors(corsOption),(req,res)=>{
     const location_ids = req.body
-    const nameofLocations = `SELECT stdev_location_name FROM stlocation WHERE stdev_id IN (${location_ids})`
-    db.query(nameofLocations,(err, result)=>{
-        res.send(result)
+
+    const viewAlllocation = `SELECT * FROM stlocation where stdev_id IN (${location_ids})`
+    db.query(viewAlllocation,(err, result)=>{
+        var selected = result.map( locations => " " + locations.stdev_location_name )
+        console.log(selected.toString())
+        const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Deleted Location(s): ${selected.toString()}' )`
+        db.query( queryAddlog , (err, result) => {})
     })
-})
 
-app.get("/deleteLocationName",cors(corsOption),(req,res)=>{
-    const location_ids = req.body
     const deletelocations = `DELETE FROM stlocation WHERE stdev_id IN (${location_ids})`
+    db.query(deletelocations,(err, result)=>{})
+
+    const viewAlllocations = `SELECT * FROM stlocation`
     db.query(viewAlllocations,(err, result)=>{
-        res.send(result)
+        res.send({message: "Location successfully Deleted! ", Result: result})
     })
+
 })
 
 app.post("/addLocations",cors(corsOption),(req,res)=>{
