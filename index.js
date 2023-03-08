@@ -2,9 +2,7 @@ const express = require('express')
 const app = express()
 const mysql = require('mysql')
 const cors = require('cors')
-const sessionId = require('express-session-id')
 const { v4: uuidv4 } = require('uuid')
-//app.use(cors())
 const bcrypt = require('bcrypt')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
@@ -20,6 +18,7 @@ app.set('trust proxy', 1)
 app.use(cookieSession({
     name: 'session',
     keys: ["theOGthesis"],
+    sameSite: 'none',
 
     // Cookie Options
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -74,10 +73,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     proxy: true,
-    httpOnly: false,
     cookie: {
         secure: true, // required for cookies to work on HTTPS
-        sameSite: 'none'
+        sameSite: 'none',
+        httpOnly: false,
     }
 }))
 
@@ -85,7 +84,6 @@ app.get('/',cors(corsOption),(req,res)=>{
     res.send({ sessionID : req.session.id})
     
 })
-
 
 
 app.post("/register",cors(corsOption), (req, res) => {
