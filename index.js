@@ -73,6 +73,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     proxy: true,
+    httpOnly: false,
+    sameSite: 'none',
     cookie: {
         secure: true, // required for cookies to work on HTTPS
         sameSite: 'none',
@@ -168,12 +170,12 @@ app.post("/api/addDevice",cors(corsOption),(req,res)=>{
 })
 
 app.post("/api/addDeviceName",cors(corsOption),(req,res)=>{
-    const {dev_name, currentUser} = req.body
+    const {dev_name} = req.body
 
     const queryAdd = `INSERT INTO device_name (dev_name) VALUES ('${dev_name}')`
     db.query( queryAdd , (err, result) => {})
 
-    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${currentUser}',now(),'Created new device type ${dev_name}' )`
+    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Created new device type ${dev_name}' )`
     db.query( queryAddlog , (err, result) => {})
 
     const viewAlldevice = "SELECT * FROM device_name"
@@ -245,11 +247,13 @@ app.post("/devicenameValues",cors(corsOption),(req,res)=>{
 app.post("/confirmDeleteDeviceType",cors(corsOption),(req,res)=>{
     const dev_ids = req.body;
 
+    dev_ids.map( ids => {
+        const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) SELECT null, '${req.session.user[0].username}',now(), CONCAT('Delete Device Types with the ID(s) of: ', device_name.dev_name) FROM device_name WHERE device_name.dev_id = ${ids}`
+        db.query( queryAddlog , (err, result) => {})
+    })
+    
     const querydelete = `DELETE FROM device_name WHERE dev_id IN (${dev_ids})`
     db.query( querydelete , (err, result) => {})
-
-    const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) VALUES (null, '${req.session.user[0].username}',now(),'Delete Device Types with the ID(s) of: ${dev_ids}' )`
-    db.query( queryAddlog , (err, result) => {})
 
     db.query("SELECT * FROM device_name",(err, result)=>{
         res.send(result)
@@ -290,7 +294,7 @@ app.post("/deleteSystemUsersName",cors(corsOption),(req,res)=>{
 })
 
 app.get("/location",cors(corsOption),(req,res)=>{
-    const viewAlllocations = "SELECT * FROM stlocation"
+    const viewAlllocations = "SELECT stlocation.* , COUNT(location_details.Id_id) AS count FROM stlocation LEFT JOIN location_details ON location_details.stdev_id = stlocation.stdev_id GROUP BY stlocation.stdev_id"
     db.query(viewAlllocations,(err, result)=>{
         res.send(result)
     })
@@ -311,21 +315,7 @@ app.post("/selectedLocationName",cors(corsOption),(req,res)=>{
             res.send({notDelete: [], fordeleteIds: location_ids})
         }
     })
-
-    
-    // res.send({notDelete: cannotDelete, fordeleteIds:Deletedarray})
-
-    // cannotDelete = []
-    // Deletedarray = []
 })
-
-// app.post("/locationNameValues",cors(corsOption),(req,res)=>{
-//     const location_ids = req.body
-//     const nameofLocations = `SELECT stdev_location_name FROM stlocation WHERE stdev_id IN (${location_ids})`
-//     db.query(nameofLocations,(err, result)=>{
-//         res.send(result)
-//     })
-// })
 
 app.post("/deleteLocationName",cors(corsOption),(req,res)=>{
     const location_ids = req.body
@@ -361,6 +351,52 @@ app.post("/addLocations",cors(corsOption),(req,res)=>{
     db.query(viewAlllocations,(err, Result)=>{
         res.send({message: `successfully added ${location_name} location.`,Result: Result})
     })
+})
+
+app.post("/locationDetails",cors(corsOption),(req,res)=>{
+    const stdev_id= req.body.stdev_id
+    const viewAlllocationDetails = `SELECT * FROM location_details LEFT JOIN stdevice ON location_details.id = stdevice.id LEFT JOIN device_name ON stdevice.dev_id = device_name.dev_id WHERE stdev_id = ${stdev_id}`
+    db.query(viewAlllocationDetails,(err, result)=>{
+        res.send(result)
+    })
+})
+
+app.post("/assignLocation",cors(corsOption),(req,res)=>{
+    const stdev_id = req.body.Location
+    const dev_ids  = req.body.item_id
+
+    dev_ids.map( ids => {
+        const viewAlllocationDetails = `INSERT INTO location_details ( Id_id, stdev_id, date_deployment, id, type) VALUES (null, '${stdev_id}', now(), '${ids}', '')`
+        db.query(viewAlllocationDetails,(err, result)=>{})
+
+        const updateStDevice = `UPDATE stdevice SET dev_status = 'Assigned' WHERE id = ${ids}`
+        db.query( updateStDevice , (err, result) => {})
+
+        const queryAddlog = `INSERT INTO activity_log (activity_log_id, username, date, action) SELECT null, '${req.session.user[0].username}',now(), CONCAT('Assigned Device with S/N(',stdevice.dev_serial,') to: ',stlocation.stdev_location_name) FROM location_details LEFT JOIN stlocation ON location_details.stdev_id = stlocation.stdev_id LEFT JOIN stdevice ON location_details.id = stdevice.id WHERE location_details.id = ${ids}`
+        db.query( queryAddlog , (err, result) => {})
+    })
+
+    const viewAlllocations = `SELECT * FROM stlocation WHERE stdev_id = ${stdev_id}`
+    db.query(viewAlllocations,(err, result)=>{
+        res.send(result)
+    })
+})
+
+app.post("/returnItems",cors(corsOption),(req,res)=>{
+    const location_ids = req.body
+
+    location_ids.map( ids => {
+        const viewAllStDevice = `INSERT INTO activity_log ( activity_log_id, date, username, action ) SELECT null, now(), '${req.session.user[0].username}', CONCAT('Returned Device with Serial Code: ', stdevice.dev_serial) FROM stdevice LEFT JOIN location_details ON location_details.id = stdevice.id WHERE location_details.Id_id = ${ids}`
+        db.query( viewAllStDevice , (err, result) => {})
+
+        const updateStDevice = `UPDATE stdevice LEFT JOIN location_details ON location_details.id = stdevice.id SET stdevice.dev_status = 'Available' WHERE location_details.Id_id = ${ids}`
+        db.query( updateStDevice , (err, result) => {
+        })
+
+        const viewAlllocationDetails = `DELETE FROM location_details WHERE Id_id = ${ids}`
+        db.query(viewAlllocationDetails,(err, result)=>{})
+    })
+    res.send({message: "successfully returned a device"})
 })
 
 app.get("/getActivityLogs",cors(corsOption),(req,res)=>{
